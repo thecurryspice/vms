@@ -83,6 +83,7 @@ n = len(args)
 if(n == 1):
 	mqttBrokerIP = input("MQTT Broker IP: ")
 	mqttPort = input("MQTT Port: ")
+	mqttTopic = input("MQTT Topic: ")
 	mqttUsername = input("MQTT Username: ")
 	print("MQTT ", end='')
 	sys.stdout.flush()
@@ -94,19 +95,20 @@ if(n == 1):
 	hostPassword = getpass.getpass()
 
 # command was executed with arguments
-elif(n == 8):
+elif(n == 9):
 	mqttBrokerIP = args[1]
 	mqttPort = args[2]
-	mqttUsername = args[3]
-	mqttPassword = args[4]
-	hostIP = args[5]
-	hostPort = args[6]
-	hostPassword = args[7]
+	mqttTopic = args[3]
+	mqttUsername = args[4]
+	mqttPassword = args[5]
+	hostIP = args[6]
+	hostPort = args[7]
+	hostPassword = args[8]
 
 # wrong number of arguments
 else:
 	print("Wrong number of arguments!")
-	print("Usage:\npython3 vlcMQTTSync.py\nor\npython3 vlcMQTTSync.py <mqttBrokerIP> <mqttPort> <mqttUsername> <mqttPassword> <hostIP> <hostPassword> <hostPort>")
+	print("Usage:\npython3 vlcMQTTSync.py\nor\npython3 vlcMQTTSync.py <mqttBrokerIP> <mqttPort> <mqttTopic> <mqttUsername> <mqttPassword> <hostIP> <hostPassword> <hostPort>")
 	print("Exiting...")
 	sys.exit()
 
@@ -119,4 +121,4 @@ connectToHost()
 print("You may now start a VLC session")
 
 auther = {'username':mqttUsername, 'password':mqttPassword}
-subscribe.callback(on_message_print, "marvel", hostname=mqttBrokerIP, auth=auther, port=int(mqttPort))
+subscribe.callback(on_message_print, mqttTopic, hostname=mqttBrokerIP, auth=auther, port=int(mqttPort))
