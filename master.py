@@ -36,9 +36,9 @@ else:
 	print("Exiting...")
 	sys.exit()
 
-auther = {'username':mqttUsername, 'password':mqttPassword}
+authen = {'username':mqttUsername, 'password':mqttPassword}
 
-print("Enter 'h' for a list of available functions")
+print("Enter 'h' for a list of available functions, or 'x' to exit")
 while True:
 	x = input("Message: ")
 	if(x == 'h'):
@@ -90,5 +90,8 @@ while True:
 		print("| quit . . . . . . . .  quit VLC (or logout if in a socket connection)")
 		print("| shutdown . . . . . . . . . . . . . . . . . . . . . . .  shutdown VLC")
 		print()
+	elif(x == 'x'):
+		print("Exiting...")
+		sys.exit()
 	else:
 		publish.single(mqttTopic, x, hostname=mqttBrokerIP, auth=auther, port=int(mqttPort))

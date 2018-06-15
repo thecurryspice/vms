@@ -8,6 +8,12 @@ import subprocess
 import getpass
 import paho.mqtt.subscribe as subscribe
 
+BLUE =  '\033[1;38;2;32;64;227m'
+RED =   '\033[1;38;2;227;32;32m'
+GREEN = '\033[0;38;2;0;192;0m'
+YELLOW ='\033[0;38;2;192;192;0m'
+NC =    '\033[0m'
+
 # callback for MQTT subscriber
 def on_message_print(client, userdata, message):
     message.payload = str(message.payload)[2:-1]
@@ -43,7 +49,7 @@ def startHostServer():
 		process = subprocess.Popen(args = cmd, stdout = subprocess.PIPE, universal_newlines = True, shell = True)
 		#print(process[0])
 	except:
-		print("Error occured in starting server! Please make sure no instances of VLC are running")
+		print(RED+"Error occured in starting server! Please make sure no instances of VLC are running"+NC)
 		# Exit the program. There's no point continuing. Recursion can reach maximum recursion depths and/or create core dumps.
 		sys.exit()
 
@@ -58,7 +64,7 @@ def connectToHost():
 			tnh.read_until(b"Password: ")
 			tnh.write(hostPassword.encode('ascii') + b"\n")
 			tnh.read_until(b"> ")
-			print("\033[0;32mConnected To Host\033[0m")
+			print(GREEN+"Connected To Host"+NC)
 		except:
 			print("Wrong Password!")
 			hostPassword = getpass.getpass()
@@ -120,5 +126,5 @@ connectToHost()
 
 print("You may now start a VLC session")
 
-auther = {'username':mqttUsername, 'password':mqttPassword}
+authen = {'username':mqttUsername, 'password':mqttPassword}
 subscribe.callback(on_message_print, mqttTopic, hostname=mqttBrokerIP, auth=auther, port=int(mqttPort))
