@@ -87,18 +87,32 @@ n = len(args)
 
 # command was directly executed
 if(n == 1):
-	mqttBrokerIP = input("MQTT Broker IP: ")
-	mqttPort = input("MQTT Port: ")
-	mqttTopic = input("MQTT Topic: ")
-	mqttUsername = input("MQTT Username: ")
-	print("MQTT ", end='')
-	sys.stdout.flush()
-	mqttPassword = getpass.getpass()
-	hostIP = input("VLC Host IP: ")
-	hostPort = input("Host Port: ")
-	print("Host ", end='')
-	sys.stdout.flush()
-	hostPassword = getpass.getpass()
+	print("1. Public Server \nor\n2. Private Server\nPublic Servers don't use a username and password.")
+	serverChoice = int(input("Choose (1 or 2): "))
+	if(serverChoice == 1):
+		mqttBrokerIP = input("MQTT Broker IP/Server: ")
+		mqttPort = input("MQTT Port: ")
+		mqttTopic = input("MQTT Topic: ")
+		hostIP = input("VLC Host IP: ")
+		hostPort = input("Host Port: ")
+		print("Host ", end='')
+		sys.stdout.flush()
+		hostPassword = getpass.getpass()
+	elif(serverChoice == 2):
+		mqttBrokerIP = input("MQTT Broker IP/Server: ")
+		mqttPort = input("MQTT Port: ")
+		mqttTopic = input("MQTT Topic: ")
+		mqttUsername = input("MQTT Username: ")
+		print("MQTT ", end='')
+		sys.stdout.flush()
+		mqttPassword = getpass.getpass()
+		hostIP = input("VLC Host IP: ")
+		hostPort = input("Host Port: ")
+		print("Host ", end='')
+		sys.stdout.flush()
+		hostPassword = getpass.getpass()
+	else:
+		sys.exit()
 
 # command was executed with arguments
 elif(n == 9):
@@ -126,5 +140,8 @@ connectToHost()
 
 print("You may now start a VLC session")
 
-authen = {'username':mqttUsername, 'password':mqttPassword}
-subscribe.callback(on_message_print, mqttTopic, hostname=mqttBrokerIP, auth=auther, port=int(mqttPort))
+if(serverChoice == 1):
+	subscribe.callback(on_message_print, mqttTopic, hostname=mqttBrokerIP, port=int(mqttPort))
+else:
+	authen = {'username':mqttUsername, 'password':mqttPassword}
+	subscribe.callback(on_message_print, mqttTopic, hostname=mqttBrokerIP, auth=authen, port=int(mqttPort))

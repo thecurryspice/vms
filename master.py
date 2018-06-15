@@ -13,13 +13,22 @@ n = len(args)
 
 # command was directly executed
 if(n == 1):
-	mqttBrokerIP = input("MQTT Broker IP: ")
-	mqttPort = input("MQTT Port: ")
-	mqttTopic = input("MQTT Topic: ")
-	mqttUsername = input("MQTT Username: ")
-	print("MQTT ", end='')
-	sys.stdout.flush()
-	mqttPassword = getpass.getpass()
+	print("1. Public Server \nor\n2. Private Server\nPublic Servers don't use a username and password.")
+	serverChoice = int(input("Choose (1 or 2): "))
+	if(serverChoice == 1):
+		mqttBrokerIP = input("MQTT Broker IP/Server: ")
+		mqttPort = input("MQTT Port: ")
+		mqttTopic = input("MQTT Topic: ")
+	elif(serverChoice == 2):
+		mqttBrokerIP = input("MQTT Broker IP: ")
+		mqttPort = input("MQTT Port: ")
+		mqttTopic = input("MQTT Topic: ")
+		mqttUsername = input("MQTT Username: ")
+		print("MQTT ", end='')
+		sys.stdout.flush()
+		mqttPassword = getpass.getpass()
+	else:
+		sys.exit()
 
 # command was executed with arguments
 elif(n == 6):
@@ -35,8 +44,6 @@ else:
 	print("Usage:\npython3 vlcMQTTSync.py\nor\npython3 vlcMQTTSync.py <brokerIP> <port> <topic> <username> <password>")
 	print("Exiting...")
 	sys.exit()
-
-authen = {'username':mqttUsername, 'password':mqttPassword}
 
 print("Enter 'h' for a list of available functions, or 'x' to exit")
 while True:
@@ -94,4 +101,8 @@ while True:
 		print("Exiting...")
 		sys.exit()
 	else:
-		publish.single(mqttTopic, x, hostname=mqttBrokerIP, auth=auther, port=int(mqttPort))
+		if(serverChoice == 1):
+			publish.single(mqttTopic, x, hostname=mqttBrokerIP, port=int(mqttPort))
+		else:
+			authen = {'username':mqttUsername, 'password':mqttPassword}
+			publish.single(mqttTopic, x, hostname=mqttBrokerIP, auth=authen, port=int(mqttPort))
