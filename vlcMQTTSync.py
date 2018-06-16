@@ -2,17 +2,20 @@
 
 import sys
 import telnetlib
+import paho.mqtt.subscribe as subscribe
 import time
 import os
 import subprocess
 import getpass
-import paho.mqtt.subscribe as subscribe
+import shelve
 
 BLUE =  '\033[1;38;2;32;64;227m'
 RED =   '\033[1;38;2;227;32;32m'
 GREEN = '\033[0;38;2;0;192;0m'
 YELLOW ='\033[0;38;2;192;192;0m'
 NC =    '\033[0m'
+
+[serverChoice, mqttBrokerIP, mqttPort, mqttTopic, mqttUsername, mqttPassword, hostIP, hostPort, hostPassword] = ['','','','','','','','','']
 
 # callback for MQTT subscriber
 def on_message_print(client, userdata, message):
@@ -79,6 +82,60 @@ def connectToHost():
 		print("\033[F\033[K", end = '')
 		connectToHost()
 
+def storeConfigFile(name):
+	shelfFile = shelve.open(os.path.join('config',name+'.config'))
+	if(serverChoice == 1):
+		shelfFile['data'] = [serverChoice, mqttBrokerIP, mqttPort, mqttTopic, hostIP, hostPort, hostPassword]
+	else:
+		shelfFile['data'] = [serverChoice, mqttBrokerIP, mqttPort, mqttTopic, mqttUsername, mqttPassword, hostIP, hostPort, hostPassword]
+
+def promptSaveConfig():
+	x = input("Do you want to save the current configuration?(y/n) : ")
+	if(x == 'y'):
+		name = input("Give a name to the configuration : ")
+		storeConfigFile(name)
+
+def getConfigFiles():
+	global configFiles
+	configFiles = []
+	files = os.listdir(os.path.join(os.getcwd(),'config'))
+	for file in files:
+		if file.endswith('.config'):
+			configFiles.append(file)
+			print(str(len(configFiles)) + ". " + configFiles[len(configFiles) - 1])
+
+def loadFromConfig():
+	global configFiles, serverChoice, mqttBrokerIP, mqttPort, mqttTopic, mqttUsername, mqttPassword, hostIP, hostPort, hostPassword
+	if(len(configFiles) > 0):
+		x = input("Do you want to load any previous configurations?<y/n> : ")
+		if(x == 'y'):
+			fileNumber = int(input("Enter corresponding number of file : "))
+			if((fileNumber) <= len(configFiles)):
+				shelfFile = shelve.open(os.path.join('config', configFiles[fileNumber - 1]))
+				if(list(shelfFile['data'])[0] == 1):
+					# public server
+					[serverChoice, mqttBrokerIP, mqttPort, mqttTopic, hostIP, hostPort, hostPassword] = list(shelfFile['data'])
+					return True
+				else:
+					# private server
+					[serverChoice, mqttBrokerIP, mqttPort, mqttTopic, mqttUsername, mqttPassword, hostIP, hostPort, hostPassword] = list(shelfFile['data'])
+					return True
+			else:
+				return False
+		else:
+			return False
+
+def printConfig():
+	print("MQTT Broker IP/Server: "+ mqttBrokerIP)
+	print("MQTT Port: "+ mqttPort)
+	print("MQTT Topic: "+ mqttTopic)
+	print("MQTT Username: "+ mqttUsername)
+	print("MQTT Password: "+ mqttPassword)
+	print("VLC Host IP: "+ hostIP)
+	print("Host Port: "+ hostPort)
+	print("Host Password: "+ hostPassword)
+
+
 # if arguments have been passed, prepare list
 args = []
 for arg in sys.argv:
@@ -87,32 +144,39 @@ n = len(args)
 
 # command was directly executed
 if(n == 1):
-	print("1. Public Server \nor\n2. Private Server\nPublic Servers don't use a username and password.")
-	serverChoice = int(input("Choose (1 or 2): "))
-	if(serverChoice == 1):
-		mqttBrokerIP = input("MQTT Broker IP/Server: ")
-		mqttPort = input("MQTT Port: ")
-		mqttTopic = input("MQTT Topic: ")
-		hostIP = input("VLC Host IP: ")
-		hostPort = input("Host Port: ")
-		print("Host ", end='')
-		sys.stdout.flush()
-		hostPassword = getpass.getpass()
-	elif(serverChoice == 2):
-		mqttBrokerIP = input("MQTT Broker IP/Server: ")
-		mqttPort = input("MQTT Port: ")
-		mqttTopic = input("MQTT Topic: ")
-		mqttUsername = input("MQTT Username: ")
-		print("MQTT ", end='')
-		sys.stdout.flush()
-		mqttPassword = getpass.getpass()
-		hostIP = input("VLC Host IP: ")
-		hostPort = input("Host Port: ")
-		print("Host ", end='')
-		sys.stdout.flush()
-		hostPassword = getpass.getpass()
+	getConfigFiles()
+	if(not loadFromConfig()):
+		print("1. Public Server \nor\n2. Private Server\nPublic Servers don't use a username and password.")
+		serverChoice = int(input("Choose (1 or 2): "))
+		if(serverChoice == 1):
+			mqttBrokerIP = input("MQTT Broker IP/Server: ")
+			mqttPort = input("MQTT Port: ")
+			mqttTopic = input("MQTT Topic: ")
+			hostIP = input("VLC Host IP: ")
+			hostPort = input("Host Port: ")
+			print("Host ", end='')
+			sys.stdout.flush()
+			hostPassword = getpass.getpass()
+			promptSaveConfig()
+		elif(serverChoice == 2):
+			mqttBrokerIP = input("MQTT Broker IP/Server: ")
+			mqttPort = input("MQTT Port: ")
+			mqttTopic = input("MQTT Topic: ")
+			mqttUsername = input("MQTT Username: ")
+			print("MQTT ", end='')
+			sys.stdout.flush()
+			mqttPassword = getpass.getpass()
+			hostIP = input("VLC Host IP: ")
+			hostPort = input("Host Port: ")
+			print("Host ", end='')
+			sys.stdout.flush()
+			hostPassword = getpass.getpass()
+			promptSaveConfig()
+		else:
+			sys.exit()
 	else:
-		sys.exit()
+		print("Loaded Configuration:")
+		printConfig()
 
 # command was executed with arguments
 elif(n == 9):
@@ -124,6 +188,7 @@ elif(n == 9):
 	hostIP = args[6]
 	hostPort = args[7]
 	hostPassword = args[8]
+	promptSaveConfig()
 
 # wrong number of arguments
 else:
