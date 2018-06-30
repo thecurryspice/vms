@@ -40,7 +40,20 @@ Use `pip3 install <package-name>` to install the above packages.
 
 ### Public Server
 
-Run `python3 vlcMQTTSync.py', choose option 1, and follow-up with:
+For a quick test, a config file for Mosquitto's public server is already provided with the configuration:
+
+```
+MQTT Broker IP/Server: test.mosquitto.org
+MQTT Port: 1883
+MQTT Topic: vlcMQTTSyncPublic
+VLC Host IP: localhost
+Host Port: 4212
+Host Password: test
+```
+
+The configurations can be done manually with:
+
+Run `python3 vlcMQTTSync.py`, choose option 1, and follow-up with:
 
 ```
 MQTT Broker IP/Server: test.mosquitto.org
@@ -48,7 +61,7 @@ MQTT Port: 1883
 MQTT Topic: randomTopic
 VLC Host IP: localhost
 Host Port: 4212
-Host Password: *******
+Host Password: ****
 ```
 
 Some public servers allow traffic only on certain ports. The server `test.mosquitto.org` for example, listens on the following ports:
@@ -61,7 +74,7 @@ Some public servers allow traffic only on certain ports. The server `test.mosqui
 
 ### Private Servers
 
-Run `python3 vlcMQTTSync.py', choose option 2, and follow-up with:
+Run `python3 vlcMQTTSync.py`, choose option 2, and follow-up with:
 
 ```
 MQTT Broker IP/Server: <server-ip>
@@ -86,3 +99,16 @@ VLC Host IP: 192.168.1.5
 Host Port: 4212
 Host Password: *******
 ```
+
+## The Master
+
+`master.py` can send various commands (most of the ones provided in the VideoLAN interface) to control behaviour on all screens.  
+Send 'h' for a list of available commands, or 'x' to exit.
+
+Due to the VLC Interface responding only to specific commands, the `master.py` interface doubles up as a group chat, where each message is sent to all live users!  
+The messages can be sent from the `master` shell and can be received on the `vlcMQTTSync` shell.
+
+
+## Saved configurations
+
+All configurations are saved in the `config` folder and are accessible by `vlcMQTTSync.py` as well as `master.py`

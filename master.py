@@ -1,9 +1,48 @@
 #!/usr/bin/python3
 
 import sys
+import os
+import shelve
 import telnetlib
 import getpass
 import paho.mqtt.publish as publish
+
+def getConfigFiles():
+	global configFiles
+	configFiles = []
+	files = os.listdir(os.path.join(os.getcwd(),'config'))
+	for file in files:
+		if file.endswith('.config'):
+			configFiles.append(file)
+			print(str(len(configFiles)) + ". " + configFiles[len(configFiles) - 1])
+
+def loadFromConfig():
+	global configFiles, serverChoice, mqttBrokerIP, mqttPort, mqttTopic, mqttUsername, mqttPassword, hostIP, hostPort, hostPassword
+	if(len(configFiles) > 0):
+		x = input("Do you want to load any previous configurations?<y/n> : ")
+		if(x == 'y'):
+			fileNumber = int(input("Enter corresponding number of file : "))
+			if((fileNumber) <= len(configFiles)):
+				shelfFile = shelve.open(os.path.join('config', configFiles[fileNumber - 1]))
+				if(list(shelfFile['data'])[0] == 1):
+					# public server
+					[serverChoice, mqttBrokerIP, mqttPort, mqttTopic, hostIP, hostPort, hostPassword] = list(shelfFile['data'])
+					return True
+				else:
+					# private server
+					[serverChoice, mqttBrokerIP, mqttPort, mqttTopic, mqttUsername, mqttPassword, hostIP, hostPort, hostPassword] = list(shelfFile['data'])
+					return True
+			else:
+				return False
+		else:
+			return False
+
+def printConfig():
+	print("MQTT Broker IP/Server: "+ mqttBrokerIP)
+	print("MQTT Port: "+ mqttPort)
+	print("MQTT Topic: "+ mqttTopic)
+	if(serverChoice == 2):
+		print("MQTT Username: "+ mqttUsername)
 
 # if arguments have been passed, prepare list
 args = []
@@ -13,22 +52,27 @@ n = len(args)
 
 # command was directly executed
 if(n == 1):
-	print("1. Public Server \nor\n2. Private Server\nPublic Servers don't use a username and password.")
-	serverChoice = int(input("Choose (1 or 2): "))
-	if(serverChoice == 1):
-		mqttBrokerIP = input("MQTT Broker IP/Server: ")
-		mqttPort = input("MQTT Port: ")
-		mqttTopic = input("MQTT Topic: ")
-	elif(serverChoice == 2):
-		mqttBrokerIP = input("MQTT Broker IP: ")
-		mqttPort = input("MQTT Port: ")
-		mqttTopic = input("MQTT Topic: ")
-		mqttUsername = input("MQTT Username: ")
-		print("MQTT ", end='')
-		sys.stdout.flush()
-		mqttPassword = getpass.getpass()
+	getConfigFiles()
+	if(not loadFromConfig()):
+		print("1. Public Server \nor\n2. Private Server\nPublic Servers don't use a username and password.")
+		serverChoice = int(input("Choose (1 or 2): "))
+		if(serverChoice == 1):
+			mqttBrokerIP = input("MQTT Broker IP/Server: ")
+			mqttPort = input("MQTT Port: ")
+			mqttTopic = input("MQTT Topic: ")
+		elif(serverChoice == 2):
+			mqttBrokerIP = input("MQTT Broker IP: ")
+			mqttPort = input("MQTT Port: ")
+			mqttTopic = input("MQTT Topic: ")
+			mqttUsername = input("MQTT Username: ")
+			print("MQTT ", end='')
+			sys.stdout.flush()
+			mqttPassword = getpass.getpass()
+		else:
+			sys.exit()
 	else:
-		sys.exit()
+		print("Loaded Configuration:")
+		printConfig()
 
 # command was executed with arguments
 elif(n == 6):
@@ -45,7 +89,7 @@ else:
 	print("Exiting...")
 	sys.exit()
 
-print("Enter 'h' for a list of available functions, or 'x' to exit")
+print("\033[0;38;2;0;192;0mReady\033[0m\nEnter 'h' for a list of available functions, or 'x' to exit")
 while True:
 	x = input("Message: ")
 	if(x == 'h'):
@@ -98,11 +142,20 @@ while True:
 		print("| shutdown . . . . . . . . . . . . . . . . . . . . . . .  shutdown VLC")
 		print()
 	elif(x == 'x'):
-		print("Exiting...")
+		print("Exiting")
 		sys.exit()
 	else:
 		if(serverChoice == 1):
-			publish.single(mqttTopic, x, hostname=mqttBrokerIP, port=int(mqttPort))
+			try:
+				publish.single(mqttTopic, x, hostname=mqttBrokerIP, port=int(mqttPort))
+			except Exception as e:
+				print("\033[1;38;2;227;32;32mError while sending message\033[0m")	
+				print(str(e)+"\n")
+
 		else:
 			authen = {'username':mqttUsername, 'password':mqttPassword}
-			publish.single(mqttTopic, x, hostname=mqttBrokerIP, auth=authen, port=int(mqttPort))
+			try:
+				publish.single(mqttTopic, x, hostname=mqttBrokerIP, auth=authen, port=int(mqttPort))
+			except Exception as e:
+				print("\033[1;38;2;227;32;32mError while sending message\033[0m")	
+				print(str(e)+"\n")
