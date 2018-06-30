@@ -206,7 +206,15 @@ connectToHost()
 print("You may now start a VLC session")
 
 if(serverChoice == 1):
-	subscribe.callback(on_message_print, mqttTopic, hostname=mqttBrokerIP, port=int(mqttPort))
+	try:
+		subscribe.callback(on_message_print, mqttTopic, hostname=mqttBrokerIP, port=int(mqttPort))
+	except:
+		print("Network Error!")
+		sys.exit()
 else:
 	authen = {'username':mqttUsername, 'password':mqttPassword}
-	subscribe.callback(on_message_print, mqttTopic, hostname=mqttBrokerIP, auth=authen, port=int(mqttPort))
+	try:
+		subscribe.callback(on_message_print, mqttTopic, hostname=mqttBrokerIP, auth=authen, port=int(mqttPort))
+	except:
+		print("Network Error!")
+		sys.exit()
