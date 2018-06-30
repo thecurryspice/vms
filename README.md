@@ -50,8 +50,9 @@ VLC Host IP: localhost
 Host Port: 4212
 Host Password: test
 ```
+  
 
-The configurations can be done manually with:
+The configurations can be done manually as well.
 
 Run `python3 vlcMQTTSync.py`, choose option 1, and follow-up with:
 
@@ -103,7 +104,7 @@ Host Password: *******
 ## The Master
 
 `master.py` can send various commands (most of the ones provided in the VideoLAN interface) to control behaviour on all screens.  
-Send 'h' for a list of available commands, or 'x' to exit.
+Send `h` for a list of available commands, or `x` to exit.
 
 Due to the VLC Interface responding only to specific commands, the `master.py` interface doubles up as a group chat, where each message is sent to all live users!  
 The messages can be sent from the `master` shell and can be received on the `vlcMQTTSync` shell.
