@@ -22,7 +22,7 @@ Password 	: <password>
 
 The utility runs on Python 3. All packages and libraries have been used keeping in mind backward compatibilty, and the script can be easily translated to ~Python 2.7
 
-The packages `telnetlib`, `getpass`, `paho-mqtt` must be installed to run the script.
+The packages `getpass`, `paho-mqtt` must be installed to run the script.
 
 Use `pip3 install <package-name>` to install the above packages.  
 
