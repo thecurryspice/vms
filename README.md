@@ -20,7 +20,7 @@ Port 		: <port>
 Password 	: <password>
 ```
 
-The utility runs on Python 3. All packages and libraries have been used keeping in mind backward compatibilty, and the script can be easily translated to ~Python 2.7
+The utility runs on Python 3. All packages and libraries have been used keeping in mind backward compatibilty, and the script can be easily translated to Python 2.7
 
 The packages `getpass`, `paho-mqtt` must be installed to run the script.
 
@@ -50,7 +50,7 @@ VLC Host IP: localhost
 Host Port: 4212
 Host Password: test
 ```
-  
+
 
 The configurations can be done manually as well.
 
@@ -64,6 +64,8 @@ VLC Host IP: localhost
 Host Port: 4212
 Host Password: ****
 ```
+
+A list of publicly available MQTT servers can be found [here](https://github.com/mqtt/mqtt.github.io/wiki/public_brokers).
 
 Some public servers allow traffic only on certain ports. The server `test.mosquitto.org` for example, listens on the following ports:
 * 1883 : MQTT, unencrypted
