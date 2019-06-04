@@ -5,6 +5,7 @@ import os
 import shelve
 import telnetlib
 import getpass
+from datetime import datetime
 import paho.mqtt.publish as publish
 
 def getConfigFiles():
@@ -89,12 +90,13 @@ else:
     print("Exiting...")
     sys.exit()
 
+# change this to your liking
 chatID = getpass.getuser()
 
 print("\033[0;38;2;0;192;0mReady\033[0m\nEnter 'h' for a list of available functions, or 'x' to exit")
 while True:
     x = chatID + "/: " + input("Message: ")
-    if(x == 'h'):
+    if(x == chatID + '/: h'):
         print("| add XYZ  . . . . . . . . . . . . . . . . . . . . add XYZ to playlist")
         print("| enqueue XYZ  . . . . . . . . . . . . . . . . . queue XYZ to playlist")
         print("| delete [X] . . . . . . . . . . . . . . . . delete item X in playlist")
@@ -149,6 +151,9 @@ while True:
     else:
         if(serverChoice == 1):
             try:
+                # Don't worry about coflicting timezones, print local time with messages
+                tt = datetime.today().timetuple()
+                x = "("+str(tt.tm_hour)+":"+str(tt.tm_min)+":"+str(tt.tm_sec)+")- " + x
                 publish.single(mqttTopic, x, hostname=mqttBrokerIP, port=int(mqttPort))
             except Exception as e:
                 print("\033[1;38;2;227;32;32mError while sending message\033[0m")   
