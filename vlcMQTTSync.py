@@ -39,6 +39,16 @@ def on_message_print(client, userdata, message):
         print(message.payload)
         sendCommand(str(message.payload[str(message.payload).find('/: ')+3:]))
 
+
+# for executing shell commands
+def cmdLine(cmd):
+    process = subprocess.Popen(args = cmd, stdout = subprocess.PIPE, universal_newlines = True, shell = True)
+    return process.communicate()[0]
+
+def cmdLineWaitUntilExecution(cmd):
+    process = subprocess.call(args = cmd, stdout = subprocess.PIPE, universal_newlines = True, shell = True)
+    #return process.communicate()[0]
+
 # for sending commands to VLC telnet host
 def sendCommand(message):
     global tnh
@@ -197,9 +207,27 @@ else:
     print("Exiting...")
     sys.exit()
 
-# create a lock until the user kills all instances of VLC
-x = input("Please make sure no instances of VLC are running. Press Enter key to continue")
+# detect and kill all VLC instances to assume control of the telnet interface
+# otherwise the playback keeps running under GUI control (mostly qvlc)
+def killAllVLC():
+    if(cmdLine("pidof vlc") == ''):
+        return
+    x = input(YELLOW+"Live VLC instances detected. Terminate now to proceed?<y/n>"+NC)
+    if(x == 'y' or x == 'Y'):
+        wasKilled = cmdLine("kill -9 $(pidof vlc)")
+        if(wasKilled == "Killed"):
+            # sanity check
+            killAllVLC()
+        else:
+            return
+    else:
+        # create a lock until the user tries to kill all instances of VLC
+        x = input(YELLOW+"Please make sure no instances of VLC are running. Press any key to continue"+NC)
+    
+    # sanity check
+    killAllVLC()     
 
+killAllVLC()
 startHostServer()
 connectToHost()
 
