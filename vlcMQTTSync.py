@@ -8,21 +8,21 @@ import os
 import subprocess
 import getpass
 import shelve
-
-BLUE =  '\033[1;38;2;32;64;227m'
-RED =   '\033[1;38;2;227;32;32m'
-GREEN = '\033[0;38;2;0;192;0m'
-YELLOW ='\033[0;38;2;192;192;0m'
-NC =    '\033[0m'
+from datetime import datetime
+from cryptography.fernet import Fernet
+import base64
+from helper import *
 
 [serverChoice, mqttBrokerIP, mqttPort, mqttTopic, mqttUsername, mqttPassword, hostIP, hostPort, hostPassword] = ['','','','','','','','','']
 
 # callback for MQTT subscriber
 def on_message_print(client, userdata, message):
-    message.payload = str(message.payload)[2:-1]
+    global fernetObject
+    decryptedMessage = fernetObject.decrypt(message.payload)
+    decryptedMessage = str(decryptedMessage)[2:-1]
     
     # will be updated in future
-    if(message.payload[2:-1] == "sync"):
+    if(decryptedMessage[2:-1] == "sync"):
         sendCommand("pause")
         time.sleep(0.5)
         sendCommand("get_time")
@@ -36,18 +36,18 @@ def on_message_print(client, userdata, message):
                 except:
                     pass
     else:
-        print(message.payload)
-        sendCommand(str(message.payload[str(message.payload).find('/: ')+3:]))
-
-
-# for executing shell commands
-def cmdLine(cmd):
-    process = subprocess.Popen(args = cmd, stdout = subprocess.PIPE, universal_newlines = True, shell = True)
-    return process.communicate()[0]
-
-def cmdLineWaitUntilExecution(cmd):
-    process = subprocess.call(args = cmd, stdout = subprocess.PIPE, universal_newlines = True, shell = True)
-    #return process.communicate()[0]
+        # Don't worry about coflicting timezones, print local time with messages
+        # This will be later compared with the sender's timestamp to check network latency
+        tt = datetime.today().timetuple()
+        timeX = ""
+        timeX = str(tt.tm_hour) if (len(str(tt.tm_hour)) > 1) else "0"+str(tt.tm_hour)
+        timeX += ":"
+        timeX += str(tt.tm_min) if (len(str(tt.tm_min)) > 1) else "0"+str(tt.tm_min)
+        timeX += ":"
+        timeX += str(tt.tm_sec) if (len(str(tt.tm_sec)) > 1) else "0"+str(tt.tm_sec)
+        timeX = "("+timeX+")- "
+        print(timeX + decryptedMessage)
+        sendCommand(str(decryptedMessage[str(decryptedMessage).find('/: ')+3:]))
 
 # for sending commands to VLC telnet host
 def sendCommand(message):
@@ -62,7 +62,7 @@ def startHostServer():
         process = subprocess.Popen(args = cmd, stdout = subprocess.PIPE, universal_newlines = True, shell = True)
         #print(process[0])
     except:
-        print(RED+"Error occured in starting server! Please make sure no instances of VLC are running"+NC)
+        print(RED+"Fatal error! Please check host telnet configuration."+NC)
         # Exit the program. There's no point continuing. Recursion can reach maximum recursion depths and/or create core dumps.
         sys.exit()
 
@@ -230,6 +230,12 @@ def killAllVLC():
 killAllVLC()
 startHostServer()
 connectToHost()
+
+chatKey = getpass.getpass("Enter chat password (32 characters maximum):")
+# pad chatKey
+for i in range(32-len(chatKey)):
+    chatKey = chatKey + ''.join('0')
+fernetObject = Fernet(base64.b64encode(chatKey.encode('utf-8')))
 
 print("You may now start a VLC session")
 

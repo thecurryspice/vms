@@ -7,6 +7,9 @@ import telnetlib
 import getpass
 from datetime import datetime
 import paho.mqtt.publish as publish
+from cryptography.fernet import Fernet
+import base64
+from helper import *
 
 def getConfigFiles():
     global configFiles
@@ -44,6 +47,13 @@ def printConfig():
     print("MQTT Topic: "+ mqttTopic)
     if(serverChoice == 2):
         print("MQTT Username: "+ mqttUsername)
+
+def encryptMessage(msg):
+    global fernetObject
+    if(not fernetObject):
+        return msg
+    else:
+        return fernetObject.encrypt(msg.encode('utf-8'))
 
 # if arguments have been passed, prepare list
 args = []
@@ -92,11 +102,22 @@ else:
 
 # change this to your liking
 chatID = getpass.getuser()
+# Ask every time for a key.
+chatKey = getpass.getpass("Enter chat key (32 characters maximum):")
+# if(chatKey != 'x' or chatKey != 'X'):
+# pad chatKey
+for i in range(32-len(chatKey)):
+    chatKey = chatKey + ''.join('0')
+# will have to check for a URL safe key here. Probably look at what exception is thrown
+# and ask the user to create a key again
+fernetObject = Fernet(base64.b64encode(chatKey.encode('utf-8')))
+print(YELLOW+"Chats are now encrypted! Anyone with the key can interpret conversations."+NC)
+
 
 print("\033[0;38;2;0;192;0mReady\033[0m\nEnter 'h' for a list of available functions, or 'x' to exit")
 while True:
-    x = chatID + "/: " + input("Message: ")
-    if(x == chatID + '/: h'):
+    x = input("Message: ")
+    if(x == 'h'):
         print("| add XYZ  . . . . . . . . . . . . . . . . . . . . add XYZ to playlist")
         print("| enqueue XYZ  . . . . . . . . . . . . . . . . . queue XYZ to playlist")
         print("| delete [X] . . . . . . . . . . . . . . . . delete item X in playlist")
@@ -145,16 +166,18 @@ while True:
         print("| quit . . . . . . . .  quit VLC (or logout if in a socket connection)")
         print("| shutdown . . . . . . . . . . . . . . . . . . . . . . .  shutdown VLC")
         print()
-    elif(x == chatID + '/: x'):
+    elif(x == 'x'):
         print("Exiting")
         sys.exit()
     else:
         if(serverChoice == 1):
             try:
-                # Don't worry about coflicting timezones, print local time with messages
+                # Don't worry about conflicting timezones, print local time with messages
                 tt = datetime.today().timetuple()
-                x = "("+str(tt.tm_hour)+":"+str(tt.tm_min)+":"+str(tt.tm_sec)+")- " + x
-                publish.single(mqttTopic, x, hostname=mqttBrokerIP, port=int(mqttPort))
+                # x = "("+str(tt.tm_hour)+":"+str(tt.tm_min) +":"+str(tt.tm_sec)+")- " + chatID + "/: " + x
+                x = chatID + "/: " + x
+                enc = encryptMessage(x)
+                publish.single(mqttTopic, enc, hostname=mqttBrokerIP, port=int(mqttPort))
             except Exception as e:
                 print("\033[1;38;2;227;32;32mError while sending message\033[0m")   
                 print(str(e)+"\n")
