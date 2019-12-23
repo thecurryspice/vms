@@ -231,7 +231,7 @@ killAllVLC()
 startHostServer()
 connectToHost()
 
-chatKey = getpass.getpass("Enter chat password (32 characters maximum):")
+chatKey = getpass.getpass("Enter chat key (32 characters maximum):")
 # pad chatKey
 for i in range(32-len(chatKey)):
     chatKey = chatKey + ''.join('0')
@@ -242,6 +242,12 @@ print("You may now start a VLC session")
 if(serverChoice == 1):
     try:
         subscribe.callback(on_message_print, mqttTopic, hostname=mqttBrokerIP, port=int(mqttPort))
+    except KeyboardInterrupt:
+        tnh.read_all()  # might be helpful later
+        tnh.close()
+        killAllVLC()
+        print("\nExiting")
+        sys.exit()
     except:
         print("Network Error!")
         sys.exit()
@@ -249,6 +255,12 @@ else:
     authen = {'username':mqttUsername, 'password':mqttPassword}
     try:
         subscribe.callback(on_message_print, mqttTopic, hostname=mqttBrokerIP, auth=authen, port=int(mqttPort))
+    except KeyboardInterrupt:
+        tnh.read_all()  # might be helpful later
+        tnh.close()
+        killAllVLC()
+        print("\nExiting")
+        sys.exit()
     except:
         print("Network Error!")
         sys.exit()
