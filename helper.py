@@ -1,10 +1,13 @@
 import subprocess
 import os
 import getpass
+import telnetlib
+from datetime import datetime
 import shelve
 import sys
 from cryptography.fernet import Fernet
 import base64
+import paho.mqtt.publish as publish
 
 BLUE =  '\033[1;38;2;32;64;227m'
 RED =   '\033[1;38;2;227;32;32m'
@@ -12,7 +15,10 @@ GREEN = '\033[0;38;2;0;192;0m'
 YELLOW ='\033[0;38;2;192;192;0m'
 NC =    '\033[0m'
 
+# change this to your liking
+chatID = getpass.getuser()
 [serverChoice, mqttBrokerIP, mqttPort, mqttTopic, mqttUsername, mqttPassword, hostIP, hostPort, hostPassword] = ['','','','','','','','','']
+
 
 # for executing shell commands
 def cmdLine(cmd):
@@ -82,66 +88,66 @@ def printConfig():
     print("Host Port: "+ hostPort)
 
 def prepConfig():
-	# if arguments have been passed, prepare list
-	args = []
-	for arg in sys.argv:
-	    args.append(arg)
-	n = len(args)
+    # if arguments have been passed, prepare list
+    args = []
+    for arg in sys.argv:
+        args.append(arg)
+    n = len(args)
 
-	# command was directly executed
-	if(n == 1):
-	    getConfigFiles()
-	    if(not loadFromConfig()):
-	        print("1. Public Server \nor\n2. Private Server\nPublic Servers don't use a username and password.")
-	        serverChoice = int(input("Choose (1 or 2): "))
-	        if(serverChoice == 1):
-	            mqttBrokerIP = input("MQTT Broker IP/Server: ")
-	            mqttPort = input("MQTT Port: ")
-	            mqttTopic = input("MQTT Topic: ")
-	            hostIP = input("VLC Host IP: ")
-	            hostPort = input("Host Port: ")
-	            print("Host ", end='')
-	            sys.stdout.flush()
-	            hostPassword = getpass.getpass()
-	            promptSaveConfig()
-	        elif(serverChoice == 2):
-	            mqttBrokerIP = input("MQTT Broker IP/Server: ")
-	            mqttPort = input("MQTT Port: ")
-	            mqttTopic = input("MQTT Topic: ")
-	            mqttUsername = input("MQTT Username: ")
-	            print("MQTT ", end='')
-	            sys.stdout.flush()
-	            mqttPassword = getpass.getpass()
-	            hostIP = input("VLC Host IP: ")
-	            hostPort = input("Host Port: ")
-	            print("Host ", end='')
-	            sys.stdout.flush()
-	            hostPassword = getpass.getpass()
-	            promptSaveConfig()
-	        else:
-	            sys.exit()
-	    else:
-	        print("Loaded Configuration:")
-	        printConfig()
+    # command was directly executed
+    if(n == 1):
+        getConfigFiles()
+        if(not loadFromConfig()):
+            print("1. Public Server \nor\n2. Private Server\nPublic Servers don't use a username and password.")
+            serverChoice = int(input("Choose (1 or 2): "))
+            if(serverChoice == 1):
+                mqttBrokerIP = input("MQTT Broker IP/Server: ")
+                mqttPort = input("MQTT Port: ")
+                mqttTopic = input("MQTT Topic: ")
+                hostIP = input("VLC Host IP: ")
+                hostPort = input("Host Port: ")
+                print("Host ", end='')
+                sys.stdout.flush()
+                hostPassword = getpass.getpass()
+                promptSaveConfig()
+            elif(serverChoice == 2):
+                mqttBrokerIP = input("MQTT Broker IP/Server: ")
+                mqttPort = input("MQTT Port: ")
+                mqttTopic = input("MQTT Topic: ")
+                mqttUsername = input("MQTT Username: ")
+                print("MQTT ", end='')
+                sys.stdout.flush()
+                mqttPassword = getpass.getpass()
+                hostIP = input("VLC Host IP: ")
+                hostPort = input("Host Port: ")
+                print("Host ", end='')
+                sys.stdout.flush()
+                hostPassword = getpass.getpass()
+                promptSaveConfig()
+            else:
+                sys.exit()
+        else:
+            print("Loaded Configuration:")
+            printConfig()
 
-	# command was executed with arguments
-	elif(n == 9):
-	    mqttBrokerIP = args[1]
-	    mqttPort = args[2]
-	    mqttTopic = args[3]
-	    mqttUsername = args[4]
-	    mqttPassword = args[5]
-	    hostIP = args[6]
-	    hostPort = args[7]
-	    hostPassword = args[8]
-	    promptSaveConfig()
+    # command was executed with arguments
+    elif(n == 9):
+        mqttBrokerIP = args[1]
+        mqttPort = args[2]
+        mqttTopic = args[3]
+        mqttUsername = args[4]
+        mqttPassword = args[5]
+        hostIP = args[6]
+        hostPort = args[7]
+        hostPassword = args[8]
+        promptSaveConfig()
 
-	# wrong number of arguments
-	else:
-	    print("Wrong number of arguments!")
-	    print("Usage:\npython3 vlcMQTTSync.py\nor\npython3 vlcMQTTSync.py <mqttBrokerIP> <mqttPort> <mqttTopic> <mqttUsername> <mqttPassword> <hostIP> <hostPassword> <hostPort>")
-	    print("Exiting...")
-	    sys.exit()
+    # wrong number of arguments
+    else:
+        print("Wrong number of arguments!")
+        print("Usage:\npython3 vlcMQTTSync.py\nor\npython3 vlcMQTTSync.py <mqttBrokerIP> <mqttPort> <mqttTopic> <mqttUsername> <mqttPassword> <hostIP> <hostPassword> <hostPort>")
+        print("Exiting...")
+        sys.exit()
 
 # encrypts message using the global fernetObject from helper
 def encryptMessage(msg):
@@ -152,12 +158,33 @@ def encryptMessage(msg):
 
 # prepare chatKey
 def getChatKey():
-	global fernetObject
-	chatKey = getpass.getpass("Enter chat key (32 characters maximum):")
-	# if(chatKey != 'x' or chatKey != 'X'):
-	# pad chatKey
-	for i in range(32-len(chatKey)):
-	    chatKey = chatKey + ''.join('0')
-	# will have to check for a URL safe key here. Probably look at what exception is thrown
-	# and ask the user to create a key again
-	fernetObject = Fernet(base64.b64encode(chatKey.encode('utf-8')))
+    global fernetObject
+    chatKey = getpass.getpass("Enter chat key (32 characters maximum):")
+    # if(chatKey != 'x' or chatKey != 'X'):
+    # pad chatKey
+    for i in range(32-len(chatKey)):
+        chatKey = chatKey + ''.join('0')
+    # will have to check for a URL safe key here. Probably look at what exception is thrown
+    # and ask the user to create a key again
+    fernetObject = Fernet(base64.b64encode(chatKey.encode('utf-8')))
+
+def publishMQTTMsg(msg):
+    if(serverChoice == 1):
+        try:
+            # Don't worry about conflicting timezones, print local time with messages
+            tt = datetime.today().timetuple()
+            # x = "("+str(tt.tm_hour)+":"+str(tt.tm_min) +":"+str(tt.tm_sec)+")- " + chatID + "/: " + x
+            msg = chatID + "/: " + msg
+            enc = encryptMessage(msg)
+            publish.single(mqttTopic, enc, hostname=mqttBrokerIP, port=int(mqttPort))
+        except Exception as e:
+            print(RED+"Error while sending message"+NC)
+            print(str(e)+"\n")
+
+    else:
+        authen = {'username':mqttUsername, 'password':mqttPassword}
+        try:
+            publish.single(mqttTopic, msg, hostname=mqttBrokerIP, auth=authen, port=int(mqttPort))
+        except Exception as e:
+            print(RED+"Error while sending message"+NC)
+            print(str(e)+"\n")

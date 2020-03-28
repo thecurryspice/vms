@@ -18,8 +18,6 @@ NC = helper.NC
 
 helper.prepConfig()
 
-# change this to your liking
-chatID = getpass.getuser()
 # Ask every time for a key.
 helper.getChatKey()
 
@@ -82,22 +80,4 @@ while True:
         print("Exiting")
         sys.exit()
     else:
-        if(helper.serverChoice == 1):
-            try:
-                # Don't worry about conflicting timezones, print local time with messages
-                tt = datetime.today().timetuple()
-                # x = "("+str(tt.tm_hour)+":"+str(tt.tm_min) +":"+str(tt.tm_sec)+")- " + chatID + "/: " + x
-                x = chatID + "/: " + x
-                enc = helper.encryptMessage(x)
-                publish.single(helper.mqttTopic, enc, hostname=helper.mqttBrokerIP, port=int(helper.mqttPort))
-            except Exception as e:
-                print(RED+"Error while sending message"+NC)
-                print(str(e)+"\n")
-
-        else:
-            authen = {'username':helper.mqttUsername, 'password':helper.mqttPassword}
-            try:
-                publish.single(helper.mqttTopic, x, hostname=helper.mqttBrokerIP, auth=authen, port=int(helper.mqttPort))
-            except Exception as e:
-                print(RED+"Error while sending message"+NC)
-                print(str(e)+"\n")
+        helper.publishMQTTMsg(x)
