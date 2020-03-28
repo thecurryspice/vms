@@ -121,7 +121,7 @@ helper.prepConfig()
 # detect and kill all VLC instances to assume control of the telnet interface
 # otherwise the playback keeps running under GUI control (mostly qvlc)
 def killAllVLC():
-    if(helper.cmdLine("pidof vlc") == ''):
+    if(helper.cmdLine("pidof vlc").stdout == ''):
         return
     x = input(YELLOW+"Live VLC instances detected. Terminate now to proceed?<y/n>"+NC)
     if(x == 'y' or x == 'Y'):
