@@ -3,7 +3,6 @@
 import sys
 import telnetlib
 import paho.mqtt.subscribe as subscribe
-import paho.mqtt.publish as publish
 import time
 import os
 import getpass
@@ -22,19 +21,42 @@ def on_message_print(client, userdata, message):
     decryptedMessage = helper.fernetObject.decrypt(message.payload)
     decryptedMessage = str(decryptedMessage)[2:-1]
     
-    # will be updated in future
-    if(decryptedMessage[decryptedMessage.find(':')+2:] == "sync"):
-        sendCommand("pause")
-        time.sleep(0.5)
+    #extract user and command fields
+    user = decryptedMessage[:decryptedMessage.find('/: ')]
+    command = decryptedMessage[decryptedMessage.find('/: ')+3:]
+
+    # prevent abuse
+    if(command == "shutdown" or command == "quit" or command == "logout"):
+        pass
+
+    # display everyone's timestamps
+    elif(command == "sync"):
+        # force a pause
+        # sendCommand("play")
+        # sendCommand("pause")
         sendCommand("get_time")
-        x = 0
-        while x == 0:
-            recBuff = tnh.read_very_eager().decode().split("\r\n")
-            try:
-                print(recBuff)
-                break
-            except:
-                pass
+
+        # assuming a timeout of 3 seconds
+        x = -1
+        start = time.time()
+        while (x == -1 and time.time()-start < 3):
+            recBuff = tnh.read_eager().decode().split("\r\n")
+            for element in recBuff:
+                try:
+                    x = int(element)
+                    break
+                except:
+                    pass
+        try:
+            if(x == -1):
+                helper.publishMQTTMsg("Couldn't fetch timestamp!")
+            else:
+                helper.publishMQTTMsg("is at " + str(helper.secsToHours(x)) + " ("+str(x)+")")
+        except Exception as error:
+            print(RED+"Failed to respond to sync request:"+NC)
+            print(error)
+
+    # throw on console and send as command
     else:
         # Don't worry about coflicting timezones, print local time with messages
         # This will be later compared with the sender's timestamp to check network latency
@@ -47,14 +69,15 @@ def on_message_print(client, userdata, message):
         timeX += str(tt.tm_sec) if (len(str(tt.tm_sec)) > 1) else "0"+str(tt.tm_sec)
         timeX = "("+timeX+")- "
         print(timeX + decryptedMessage)
-        sendCommand(str(decryptedMessage[str(decryptedMessage).find('/: ')+3:]))
+        helper.cmdLineSuppressed("notify-send \""+str(user)+"\" \""+str(command)+"\"")
+        sendCommand(str(command))
 
 # for sending commands to VLC telnet host
 def sendCommand(message):
     global tnh
     tnh.write(message.encode('ascii') + b"\n")
     recBuff = tnh.read_very_eager().decode().split("\r\n")
-    #print(recBuff)
+    # print(recBuff)
 
 def startHostServer():
     try:
