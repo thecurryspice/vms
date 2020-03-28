@@ -9,112 +9,24 @@ from datetime import datetime
 import paho.mqtt.publish as publish
 from cryptography.fernet import Fernet
 import base64
-from helper import *
+import helper
 
-def getConfigFiles():
-    global configFiles
-    configFiles = []
-    files = os.listdir(os.path.join(os.getcwd(),'config'))
-    for file in files:
-        if file.endswith('.config'):
-            configFiles.append(file)
-            print(str(len(configFiles)) + ". " + configFiles[len(configFiles) - 1])
+YELLOW = helper.YELLOW
+GREEN = helper.GREEN
+RED = helper.RED
+NC = helper.NC
 
-def loadFromConfig():
-    global configFiles, serverChoice, mqttBrokerIP, mqttPort, mqttTopic, mqttUsername, mqttPassword, hostIP, hostPort, hostPassword
-    if(len(configFiles) > 0):
-        x = input("Do you want to load any previous configurations?<y/n> : ")
-        if(x == 'y'):
-            fileNumber = int(input("Enter corresponding number of file : "))
-            if((fileNumber) <= len(configFiles)):
-                shelfFile = shelve.open(os.path.join('config', configFiles[fileNumber - 1]))
-                if(list(shelfFile['data'])[0] == 1):
-                    # public server
-                    [serverChoice, mqttBrokerIP, mqttPort, mqttTopic, hostIP, hostPort, hostPassword] = list(shelfFile['data'])
-                    return True
-                else:
-                    # private server
-                    [serverChoice, mqttBrokerIP, mqttPort, mqttTopic, mqttUsername, mqttPassword, hostIP, hostPort, hostPassword] = list(shelfFile['data'])
-                    return True
-            else:
-                return False
-        else:
-            return False
-
-def printConfig():
-    print("MQTT Broker IP/Server: "+ mqttBrokerIP)
-    print("MQTT Port: "+ mqttPort)
-    print("MQTT Topic: "+ mqttTopic)
-    if(serverChoice == 2):
-        print("MQTT Username: "+ mqttUsername)
-
-def encryptMessage(msg):
-    global fernetObject
-    if(not fernetObject):
-        return msg
-    else:
-        return fernetObject.encrypt(msg.encode('utf-8'))
-
-# if arguments have been passed, prepare list
-args = []
-for arg in sys.argv:
-    args.append(arg)
-n = len(args)
-
-# command was directly executed
-if(n == 1):
-    getConfigFiles()
-    if(not loadFromConfig()):
-        print("1. Public Server \nor\n2. Private Server\nPublic Servers don't use a username and password.")
-        serverChoice = int(input("Choose (1 or 2): "))
-        if(serverChoice == 1):
-            mqttBrokerIP = input("MQTT Broker IP/Server: ")
-            mqttPort = input("MQTT Port: ")
-            mqttTopic = input("MQTT Topic: ")
-        elif(serverChoice == 2):
-            mqttBrokerIP = input("MQTT Broker IP: ")
-            mqttPort = input("MQTT Port: ")
-            mqttTopic = input("MQTT Topic: ")
-            mqttUsername = input("MQTT Username: ")
-            print("MQTT ", end='')
-            sys.stdout.flush()
-            mqttPassword = getpass.getpass()
-        else:
-            sys.exit()
-    else:
-        print("Loaded Configuration:")
-        printConfig()
-
-# command was executed with arguments
-elif(n == 6):
-    mqttBrokerIP = args[1]
-    mqttPort = args[2]
-    mqttTopic = args[3]
-    mqttUsername = args[4]
-    mqttPassword = args[5]
-
-# wrong number of arguments
-else:
-    print("Wrong number of arguments!")
-    print("Usage:\npython3 vlcMQTTSync.py\nor\npython3 vlcMQTTSync.py <brokerIP> <port> <topic> <username> <password>")
-    print("Exiting...")
-    sys.exit()
+helper.prepConfig()
 
 # change this to your liking
 chatID = getpass.getuser()
 # Ask every time for a key.
-chatKey = getpass.getpass("Enter chat key (32 characters maximum):")
-# if(chatKey != 'x' or chatKey != 'X'):
-# pad chatKey
-for i in range(32-len(chatKey)):
-    chatKey = chatKey + ''.join('0')
-# will have to check for a URL safe key here. Probably look at what exception is thrown
-# and ask the user to create a key again
-fernetObject = Fernet(base64.b64encode(chatKey.encode('utf-8')))
+helper.getChatKey()
+
 print(YELLOW+"Chats are now encrypted! Anyone with the key can interpret conversations."+NC)
 
 
-print("\033[0;38;2;0;192;0mReady\033[0m\nEnter 'h' for a list of available functions, or 'x' to exit")
+print(GREEN+"Ready"+NC+"\nEnter 'h' for a list of available functions, or 'x' to exit")
 while True:
     x = input("Message: ")
     if(x == 'h'):
@@ -170,22 +82,22 @@ while True:
         print("Exiting")
         sys.exit()
     else:
-        if(serverChoice == 1):
+        if(helper.serverChoice == 1):
             try:
                 # Don't worry about conflicting timezones, print local time with messages
                 tt = datetime.today().timetuple()
                 # x = "("+str(tt.tm_hour)+":"+str(tt.tm_min) +":"+str(tt.tm_sec)+")- " + chatID + "/: " + x
                 x = chatID + "/: " + x
-                enc = encryptMessage(x)
-                publish.single(mqttTopic, enc, hostname=mqttBrokerIP, port=int(mqttPort))
+                enc = helper.encryptMessage(x)
+                publish.single(helper.mqttTopic, enc, hostname=helper.mqttBrokerIP, port=int(helper.mqttPort))
             except Exception as e:
-                print("\033[1;38;2;227;32;32mError while sending message\033[0m")   
+                print(RED+"Error while sending message"+NC)
                 print(str(e)+"\n")
 
         else:
-            authen = {'username':mqttUsername, 'password':mqttPassword}
+            authen = {'username':helper.mqttUsername, 'password':helper.mqttPassword}
             try:
-                publish.single(mqttTopic, x, hostname=mqttBrokerIP, auth=authen, port=int(mqttPort))
+                publish.single(helper.mqttTopic, x, hostname=helper.mqttBrokerIP, auth=authen, port=int(helper.mqttPort))
             except Exception as e:
-                print("\033[1;38;2;227;32;32mError while sending message\033[0m")   
+                print(RED+"Error while sending message"+NC)
                 print(str(e)+"\n")
