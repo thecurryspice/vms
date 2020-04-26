@@ -188,3 +188,8 @@ def publishMQTTMsg(msg):
         except Exception as e:
             print(RED+"Error while sending message"+NC)
             print(str(e)+"\n")
+
+def secsToHours(secs):
+    mm, ss = divmod(secs, 60)
+    hh, mm = divmod(mm, 60)
+    return "%d:%02d:%02.2f" % (hh, mm, ss)
