@@ -58,7 +58,7 @@ def sendCommand(message):
 
 def startHostServer():
     try:
-        cmd = "vlc -I telnet --telnet-password=" + str(hostPassword) + " --telnet-host="+ str(hostIP) + " --telnet-port=" + str(hostPort)
+        cmd = "vlc --extraintf telnet --telnet-password=" + str(hostPassword) + " --telnet-host="+ str(hostIP) + " --telnet-port=" + str(hostPort)
         process = subprocess.Popen(args = cmd, stdout = subprocess.PIPE, universal_newlines = True, shell = True)
         #print(process[0])
     except:
